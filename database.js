@@ -771,7 +771,7 @@ class DatabaseManager {
     } catch (e) {}
 
     const isCloud = !!(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_URL || process.env.NODE_ENV === 'production');
-    const isPersistentDisk = this.filePath.startsWith('/var/data') || (process.env.DB_PATH && process.env.DB_PATH.length > 0);
+    const isPersistentDisk = this.filePath.startsWith('/var/data') || (isCloud && !!process.env.DB_PATH);
 
     return {
       filePath: this.filePath,
@@ -832,7 +832,7 @@ class DatabaseManager {
       if (Array.isArray(settings) && settings.length > 0) {
         const ins = this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)');
         for (const s of settings) {
-          ins.run(s.key, String(s.value));
+          ins.run(s.key, s.value == null ? '' : String(s.value));
         }
       }
 
@@ -866,6 +866,7 @@ class DatabaseManager {
       }
 
       this.db.exec('COMMIT;');
+      this.seedDefaultData();
       return { success: true, countExpenses: (expenses || []).length };
     } catch (err) {
       this.db.exec('ROLLBACK;');

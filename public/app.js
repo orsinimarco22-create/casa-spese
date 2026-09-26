@@ -1032,7 +1032,7 @@
   function renderExpensesList() {
     const expenses = state.data.expenses || [];
     const p1Name = state.settings.partner1_name || 'Marco';
-    const p2Name = state.settings.partner2_name || 'Compagna';
+    const p2Name = state.settings.partner2_name || 'Angela';
 
     // Filtra spese
     const filtered = expenses.filter(exp => {
