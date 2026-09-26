@@ -820,6 +820,20 @@
           </div>
 
           <div class="form-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+            <label>💾 Backup Dati & Cloud 24/7</label>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
+              Scarica una copia di sicurezza di tutte le spese e impostazioni o ripristina un salvataggio precedente.
+            </p>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+              <a href="/api/backup/download?format=json" download class="btn btn-outline btn-sm" id="btnDownloadBackup" style="text-decoration: none;">📥 Scarica Backup (JSON)</a>
+              <a href="/api/backup/download?format=db" download class="btn btn-outline btn-sm" id="btnDownloadBackupDb" style="text-decoration: none;">💾 Scarica Database (.db)</a>
+              <button type="button" class="btn btn-outline btn-sm" id="btnTriggerRestore">📤 Ripristina Backup</button>
+              <input type="file" id="inputRestoreFile" accept=".json" style="display: none;">
+            </div>
+            <span id="settingsStorageBadge" class="badge badge-info" style="font-size: 0.75rem;">Verifica archiviazione...</span>
+          </div>
+
+          <div class="form-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
             <label>Test Notifiche Istantanee</label>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Verifica la ricezione degli avvisi per spese e affitto su questo dispositivo e su tutti gli smartphone collegati.</p>
             <button type="button" class="btn btn-outline btn-sm" id="btnSettingsTestNotif">🔔 Invia Notifica di Prova</button>

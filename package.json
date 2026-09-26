@@ -5,11 +5,13 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test_app.js && node test_fixed_pwa.js",
+    "test": "node test_app.js && node test_fixed_pwa.js && node test_cloud_and_backup.js",
     "test:app": "node test_app.js",
+    "test:cloud": "node test_cloud_and_backup.js",
     "test:notifications": "node test_notifications.js",
     "test:pwa": "node test_fixed_pwa.js",
-    "test:remote": "node test_remote.js"
+    "test:remote": "node test_remote.js",
+    "deploy:render": "node deploy_to_render.js"
   },
   "engines": {
     "node": ">=22.0.0"

@@ -212,6 +212,9 @@
     btnSettingsTestNotif: document.getElementById('btnSettingsTestNotif'),
     btnSettingsOpenFixedTunnel: document.getElementById('btnSettingsOpenFixedTunnel'),
     settingsTunnelBadgeText: document.getElementById('settingsTunnelBadgeText'),
+    settingsStorageBadge: document.getElementById('settingsStorageBadge'),
+    btnTriggerRestore: document.getElementById('btnTriggerRestore'),
+    inputRestoreFile: document.getElementById('inputRestoreFile'),
     btnCloseSettingsModal: document.getElementById('btnCloseSettingsModal'),
     btnCancelSettings: document.getElementById('btnCancelSettings'),
 
@@ -1731,6 +1734,14 @@
       DOM.settingCleaningBudget.value = catBudgets.pulizie !== undefined ? catBudgets.pulizie : '100';
     }
 
+    if (DOM.settingsStorageBadge) {
+      const storage = state.networkInfo && state.networkInfo.storage;
+      if (storage) {
+        DOM.settingsStorageBadge.textContent = `💾 ${storage.storageType || 'Archivio'} (${Math.round((storage.sizeBytes || 0) / 1024)} KB)`;
+        DOM.settingsStorageBadge.className = storage.isPersistentDisk ? 'badge badge-success' : 'badge badge-info';
+      }
+    }
+
     DOM.modalSettings.classList.add('open');
   }
 
@@ -2249,6 +2260,49 @@
         DOM.modalSettings.classList.remove('open');
         openShareModal();
         toggleFixedConfigPanel();
+      });
+    }
+
+    // Gestione Ripristino Backup (JSON)
+    if (DOM.btnTriggerRestore && DOM.inputRestoreFile) {
+      DOM.btnTriggerRestore.addEventListener('click', () => {
+        DOM.inputRestoreFile.click();
+      });
+
+      DOM.inputRestoreFile.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        try {
+          const text = await file.text();
+          const json = JSON.parse(text);
+          if (!json.data) {
+            alert('File non valido: assicurati che sia un file di backup JSON esportato da Casa & Spese.');
+            return;
+          }
+
+          if (!confirm(`Sei sicuro di voler ripristinare il backup "${file.name}"? I dati attuali verranno sostituiti con quelli del backup.`)) {
+            DOM.inputRestoreFile.value = '';
+            return;
+          }
+
+          const res = await fetch('/api/backup/restore', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(json)
+          });
+          const result = await res.json();
+          if (res.ok && result.success) {
+            showToast('✅ Dati ripristinati con successo!');
+            await loadMonthData(state.currentMonth, false);
+          } else {
+            alert('Errore nel ripristino: ' + (result.error || 'Errore sconosciuto'));
+          }
+        } catch (err) {
+          alert('Errore nella lettura del file di backup: ' + err.message);
+        } finally {
+          DOM.inputRestoreFile.value = '';
+        }
       });
     }
   }

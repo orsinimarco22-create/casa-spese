@@ -811,8 +811,25 @@ class DatabaseManager {
 
     this.db.exec('BEGIN TRANSACTION;');
     try {
-      if (Array.isArray(settings) && settings.length > 0) {
+      // 1. Svuotamento tabelle figlie prima delle tabelle madri (rispetta i vincoli di Foreign Key)
+      if (Array.isArray(settlements)) {
+        this.db.exec('DELETE FROM settlements;');
+      }
+      if (Array.isArray(expenses)) {
+        this.db.exec('DELETE FROM expenses;');
+      }
+      if (Array.isArray(monthly_incomes)) {
+        this.db.exec('DELETE FROM monthly_incomes;');
+      }
+      if (Array.isArray(categories)) {
+        this.db.exec('DELETE FROM categories;');
+      }
+      if (Array.isArray(settings)) {
         this.db.exec('DELETE FROM settings;');
+      }
+
+      // 2. Inserimento tabelle madri
+      if (Array.isArray(settings) && settings.length > 0) {
         const ins = this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)');
         for (const s of settings) {
           ins.run(s.key, String(s.value));
@@ -820,7 +837,6 @@ class DatabaseManager {
       }
 
       if (Array.isArray(categories) && categories.length > 0) {
-        this.db.exec('DELETE FROM categories;');
         const ins = this.db.prepare('INSERT INTO categories (id, name, icon, color, is_default) VALUES (?, ?, ?, ?, ?)');
         for (const c of categories) {
           ins.run(c.id, c.name, c.icon, c.color, c.is_default ? 1 : 0);
@@ -828,23 +844,21 @@ class DatabaseManager {
       }
 
       if (Array.isArray(monthly_incomes) && monthly_incomes.length > 0) {
-        this.db.exec('DELETE FROM monthly_incomes;');
         const ins = this.db.prepare('INSERT INTO monthly_incomes (month, income_partner1, income_partner2, extra_income, notes) VALUES (?, ?, ?, ?, ?)');
         for (const m of monthly_incomes) {
           ins.run(m.month, m.income_partner1 || 0, m.income_partner2 || 0, m.extra_income || 0, m.notes || '');
         }
       }
 
+      // 3. Inserimento tabelle figlie
       if (Array.isArray(expenses) && expenses.length > 0) {
-        this.db.exec('DELETE FROM expenses;');
         const ins = this.db.prepare('INSERT INTO expenses (id, month, date, title, amount, category_id, paid_by, split_type, is_fixed, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         for (const e of expenses) {
           ins.run(e.id || null, e.month, e.date, e.title, e.amount, e.category_id, e.paid_by, e.split_type, e.is_fixed ? 1 : 0, e.notes || '', e.created_at || new Date().toISOString());
         }
       }
 
-      if (Array.isArray(settlements)) {
-        this.db.exec('DELETE FROM settlements;');
+      if (Array.isArray(settlements) && settlements.length > 0) {
         const ins = this.db.prepare('INSERT INTO settlements (id, month, settled_at, amount, from_partner, to_partner, notes) VALUES (?, ?, ?, ?, ?, ?, ?)');
         for (const s of settlements) {
           ins.run(s.id || null, s.month, s.settled_at || new Date().toISOString(), s.amount, s.from_partner, s.to_partner, s.notes || '');
