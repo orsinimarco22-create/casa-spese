@@ -1,0 +1,11 @@
+node_modules
+*.log
+.git
+crops
+slides_*
+*.pptx
+*.pdf
+test_*.js
+installa_*.bat
+disinstalla_*.bat
+cloudflared.exe

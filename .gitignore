@@ -1,0 +1,24 @@
+# Node & Dipendenze
+node_modules/
+npm-debug.log*
+
+# File binari pesanti non necessari per il deploy cloud
+cloudflared.exe
+*.pptx
+*.pdf
+crops/
+slides_compact/
+slides_crux/
+slides_perfect/
+slides_preview/
+build_*.py
+audit_*.py
+generate_*.py
+test_*.jpg
+test_*.db
+__pycache__/
+
+# Log e cache
+*.log
+.DS_Store
+Thumbs.db

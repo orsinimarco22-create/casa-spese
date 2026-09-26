@@ -1,0 +1,25 @@
+{
+  "name": "casa-e-spese",
+  "version": "1.0.0",
+  "description": "App di gestione spese di coppia, stipendi e bilancio in tempo reale",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test_app.js && node test_fixed_pwa.js",
+    "test:app": "node test_app.js",
+    "test:notifications": "node test_notifications.js",
+    "test:pwa": "node test_fixed_pwa.js",
+    "test:remote": "node test_remote.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": [
+    "coppia",
+    "spese",
+    "budget",
+    "bilancio"
+  ],
+  "author": "Marco",
+  "license": "ISC"
+}

@@ -1,0 +1,58 @@
+{
+  "id": "casa-e-spese-app",
+  "name": "Casa & Spese - Gestione Finanze di Coppia",
+  "short_name": "Casa&Spese",
+  "description": "App di coppia per la gestione di spese condivise, stipendi, affitto e bilancio in tempo reale",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#0f172a",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "lang": "it-IT",
+  "dir": "ltr",
+  "categories": ["finance", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuova Spesa",
+      "short_name": "Nuova Spesa",
+      "description": "Registra velocemente una nuova spesa",
+      "url": "/?action=new-expense",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Controllo Affitto",
+      "short_name": "Affitto",
+      "description": "Verifica il turno e la scadenza dell'affitto",
+      "url": "/?action=rent",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

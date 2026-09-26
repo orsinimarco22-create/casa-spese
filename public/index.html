@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Casa & Spese | Gestione Finanze di Coppia</title>
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <meta name="theme-color" content="#10b981">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Casa&Spese">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏡</text></svg>">
+  
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    
+    <!-- Top Navigation Header -->
+    <header class="top-header">
+      <div class="header-main">
+        <div class="brand">
+          <span class="brand-icon">🏡</span>
+          <div class="brand-text">
+            <div class="brand-title-row">
+              <h1>Casa & Spese</h1>
+              <button class="tunnel-status-pill starting" id="headerTunnelStatus" title="Stato Cloudflare Tunnel - Tocca per aprire QR e link">🌐 Cloudflare...</button>
+            </div>
+            <span class="live-status" id="liveStatus">
+              <span class="status-dot"></span> Sincronizzato in tempo reale
+            </span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button class="icon-btn" id="btnToggleNotifications" title="Attiva Notifiche Spese & Affitto">
+            🔔 <span class="btn-label-desktop">Notifiche</span>
+          </button>
+          <button class="icon-btn" id="btnSharePhone" title="Collega Smartphone (QR Code)">
+            📱 <span class="btn-label-desktop">Collega Telefono</span>
+          </button>
+          <button class="icon-btn" id="btnOpenSettings" title="Impostazioni di Coppia">
+            ⚙️
+          </button>
+        </div>
+      </div>
+
+      <!-- Month Selector Bar -->
+      <div class="month-selector-bar">
+        <button class="nav-arrow" id="btnPrevMonth" title="Mese precedente">‹</button>
+        <div class="current-month-display" id="currentMonthDisplay">
+          <span class="month-name" id="monthNameText">Settembre</span>
+          <span class="month-year" id="monthYearText">2026</span>
+        </div>
+        <button class="nav-arrow" id="btnNextMonth" title="Mese successivo">›</button>
+        <button class="today-badge-btn" id="btnCurrentMonth">Oggi</button>
+      </div>
+      <!-- Next Rent Turn Reminder Ticker -->
+      <div class="next-rent-ticker" id="nextRentTicker">
+        <span class="ticker-icon">🗓️</span>
+        <span id="nextRentTickerText">Prossimo affitto (1 Ottobre): tocca ad Angela (940,00 €)</span>
+      </div>
+    </header>
+
+    <!-- Offline Network Banner -->
+    <div id="offlineIndicator" class="offline-indicator" style="display: none;">
+      <span>⚠️ Connessione di rete assente. Modalità offline attiva: puoi visualizzare i dati salvati.</span>
+    </div>
+
+    <!-- PWA Install Banner per Smartphone -->
+    <div id="pwaInstallBanner" class="pwa-install-banner" style="display: none;">
+      <div class="pwa-install-icon">🏡</div>
+      <div class="pwa-install-info">
+        <div class="pwa-install-title">Installa Casa & Spese sullo Smartphone!</div>
+        <div class="pwa-install-subtitle">Aggiungi l'icona alla schermata Home per usarla a schermo intero come una vera app.</div>
+      </div>
+      <div class="pwa-install-actions">
+        <button type="button" class="btn btn-primary btn-sm" id="btnInstallPwa">Installa App</button>
+        <button type="button" class="btn-pwa-dismiss" id="btnDismissInstall" title="Chiudi">&times;</button>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Financial Dashboard Card -->
+      <section class="dashboard-hero">
+        
+        <!-- Total Incomes vs Expenses vs Savings -->
+        <div class="hero-primary-grid">
+          
+          <!-- Card Entrate -->
+          <div class="finance-card card-income">
+            <div class="card-head">
+              <span class="card-title">💰 Entrate Totali</span>
+              <button class="tiny-action-btn" id="btnEditIncomes" title="Modifica stipendi del mese">✏️ Modifica</button>
+            </div>
+            <div class="card-amount" id="totalIncomeDisplay">0,00 €</div>
+            <div class="card-subtitle" id="incomesBreakdownText">Caricamento stipendi...</div>
+          </div>
+
+          <!-- Card Spese -->
+          <div class="finance-card card-expenses">
+            <div class="card-head">
+              <span class="card-title">💸 Spese del Mese</span>
+              <span class="badge badge-subtle" id="expenseCountBadge">0 spese</span>
+            </div>
+            <div class="card-amount" id="totalExpensesDisplay">0,00 €</div>
+            <div class="card-subtitle" id="expensesSplitText">Fisse: 0 € | Variabili: 0 €</div>
+          </div>
+
+          <!-- Card Risparmio di Coppia -->
+          <div class="finance-card card-savings highlight-card">
+            <div class="card-head">
+              <span class="card-title">🎯 Risparmio di Coppia</span>
+              <span class="badge badge-success" id="savingsRateBadge">0%</span>
+            </div>
+            <div class="card-amount savings-val" id="totalSavingsDisplay">0,00 €</div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" id="savingsProgressBar" style="width: 0%;"></div>
+            </div>
+            <div class="card-subtitle" id="savingsGoalText">Quanto rimane del vostro budget</div>
+          </div>
+
+        </div>
+
+        <!-- Partners Individual Savings & Detailed Subtraction Breakdown -->
+        <div class="partners-overview-grid">
+          
+          <!-- Partner 1 (Marco) -->
+          <div class="partner-card" id="partner1Card">
+            <div class="partner-header">
+              <span class="partner-avatar">👨‍💼</span>
+              <div class="partner-identity">
+                <strong id="partner1NameDisplay">Marco</strong>
+                <span class="partner-ratio" id="partner1RatioDisplay">Stipendio: 2.700,00 €</span>
+              </div>
+            </div>
+            <div class="partner-stats partner-receipt">
+              <div class="stat-row base-income-row">
+                <span>💰 Stipendio iniziale:</span>
+                <strong id="partner1BaseIncomeDisplay">+ 2.700,00 €</strong>
+              </div>
+              <div class="stat-row deduction-row" id="partner1RentRow">
+                <span>🏠 Affitto di turno:</span>
+                <strong class="text-deduction" id="partner1RentDeduction">- 940,00 €</strong>
+              </div>
+              <div class="stat-row deduction-row">
+                <span>⚡ Bollette & Utenze (50%):</span>
+                <strong class="text-deduction" id="partner1BillsDeduction">0,00 €</strong>
+              </div>
+              <div class="stat-row deduction-row">
+                <span>🛒 Spesa Alimentare:</span>
+                <strong class="text-deduction" id="partner1FoodDeduction">0,00 €</strong>
+              </div>
+              <div class="stat-row deduction-row" id="partner1OtherRow">
+                <span>🛍️ Varie Casa, Arredo & Extra:</span>
+                <strong class="text-deduction" id="partner1OtherDeduction">0,00 €</strong>
+              </div>
+              <div class="stat-row highlight-stat">
+                <span>🎯 RISPARMIO NETTO RIMASTO:</span>
+                <strong class="text-success" id="partner1SavingsDisplay">0,00 €</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Partner 2 (Angela) -->
+          <div class="partner-card" id="partner2Card">
+            <div class="partner-header">
+              <span class="partner-avatar">👩‍💼</span>
+              <div class="partner-identity">
+                <strong id="partner2NameDisplay">Angela</strong>
+                <span class="partner-ratio" id="partner2RatioDisplay">Stipendio: 2.200,00 €</span>
+              </div>
+            </div>
+            <div class="partner-stats partner-receipt">
+              <div class="stat-row base-income-row">
+                <span>💰 Stipendio iniziale:</span>
+                <strong id="partner2BaseIncomeDisplay">+ 2.200,00 €</strong>
+              </div>
+              <div class="stat-row deduction-row" id="partner2RentRow">
+                <span>🏠 Affitto di turno:</span>
+                <strong class="text-muted-ok" id="partner2RentDeduction">0,00 € (Tocca a Marco)</strong>
+              </div>
+              <div class="stat-row deduction-row">
+                <span>⚡ Bollette & Utenze (50%):</span>
+                <strong class="text-deduction" id="partner2BillsDeduction">0,00 €</strong>
+              </div>
+              <div class="stat-row deduction-row">
+                <span>🛒 Spesa Alimentare:</span>
+                <strong class="text-deduction" id="partner2FoodDeduction">0,00 €</strong>
+              </div>
+              <div class="stat-row deduction-row" id="partner2OtherRow">
+                <span>🛍️ Varie Casa, Arredo & Extra:</span>
+                <strong class="text-deduction" id="partner2OtherDeduction">0,00 €</strong>
+              </div>
+              <div class="stat-row highlight-stat">
+                <span>🎯 RISPARMIO NETTO RIMASTO:</span>
+                <strong class="text-success" id="partner2SavingsDisplay">2.055,75 €</strong>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Card Tetto Spesa Alimentare (in primis) & Altri Tetti -->
+        <div class="budget-limit-card" id="budgetLimitCard">
+          <div class="budget-limit-header">
+            <div class="budget-title-wrap">
+              <span class="budget-icon">🛒</span>
+              <div>
+                <strong>Tetto Spesa Alimentare (Supermercato)</strong>
+                <span class="budget-sub" id="budgetLimitSubText">Controllo dedicato per la spesa cibo (60% Marco / 40% Angela)</span>
+              </div>
+            </div>
+            <div class="budget-limit-controls">
+              <span class="badge badge-success" id="budgetPercentBadge">0%</span>
+              <button type="button" class="tiny-action-btn" id="btnEditBudgetLimit" title="Modifica il tetto per la spesa alimentare">✏️ Modifica Tetto Spesa</button>
+            </div>
+          </div>
+          <div class="budget-stats-row">
+            <div class="budget-stat-col">
+              <span class="budget-stat-lbl">Spesi al supermercato:</span>
+              <strong id="budgetSpentDisplay">0,00 €</strong>
+            </div>
+            <div class="budget-stat-col">
+              <span class="budget-stat-lbl">Tetto concordato:</span>
+              <strong id="budgetCapDisplay">400,00 €</strong>
+            </div>
+            <div class="budget-stat-col">
+              <span class="budget-stat-lbl">Disponibili:</span>
+              <strong class="text-success" id="budgetRemainingDisplay">400,00 €</strong>
+            </div>
+          </div>
+          <div class="progress-bar-container budget-meter-container">
+            <div class="progress-bar-fill" id="budgetProgressBar" style="width: 0%;"></div>
+          </div>
+          <div class="budget-status-tip" id="budgetStatusTip">
+            Sei nei limiti del budget spesa alimentare.
+          </div>
+
+          <!-- Altri Tetti per Categoria (Opzionali) -->
+          <div class="other-budgets-section" id="otherBudgetsSection">
+            <div class="other-budgets-head">
+              <span>🎯 Altri tetti di spesa per categoria:</span>
+              <button type="button" class="btn-link-sm" id="btnAddCategoryBudget">➕ Imposta / Modifica Tetti</button>
+            </div>
+            <div class="other-budgets-grid" id="otherBudgetsGrid">
+              <!-- Renderizzato dinamicamente da app.js -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Rent Turn Alternating Banner -->
+        <div class="rent-turn-banner" id="rentTurnBanner">
+          <div class="settlement-info">
+            <span class="rent-turn-icon">🏠</span>
+            <div class="rent-turn-text">
+              <strong id="rentTurnTitle">Turno Affitto (940 €) - Settembre 2026</strong>
+              <p id="rentTurnDesc">A Settembre 2026 l'affitto è a carico di Marco. Ad Ottobre 2026 toccherà ad Angela.</p>
+            </div>
+          </div>
+          <div class="rent-badges-wrap">
+            <span class="badge" id="rentDeadlineBadge">⏳ Scadenza: entro il 5</span>
+            <span class="badge badge-subtle" id="rentTurnBadge">Settembre: Marco</span>
+            <span class="badge badge-success" id="nextRentBadge">🗓️ Prossimo: Angela (1 Ott)</span>
+          </div>
+        </div>
+
+        <!-- Settlement & Conguaglio Bar -->
+        <div class="settlement-banner" id="settlementBanner">
+          <div class="settlement-info">
+            <span class="settlement-icon" id="settlementIcon">⚖️</span>
+            <div class="settlement-text">
+              <strong id="settlementTitle">Bilancio di Coppia</strong>
+              <p id="settlementDesc">Calcolo in corso...</p>
+            </div>
+          </div>
+          <div class="settlement-actions-wrap" id="settlementActionsWrap">
+            <button class="btn btn-secondary btn-sm" id="btnSettleBalance">
+              🤝 Pareggia i conti
+            </button>
+            <button class="btn btn-outline-danger btn-sm" id="btnUndoSettlement" style="display:none;" title="Annulla il rimborso registrato">
+              ↩️ Annulla pareggio
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Quick Chips Bar: Scorciatoie Spese Frequenti -->
+      <div class="quick-chips-bar" id="quickChipsBar">
+        <span class="quick-chips-label">⚡ Inserimento rapido:</span>
+        <div class="quick-chips-scroll">
+          <button type="button" class="quick-chip-btn" data-preset="spesa">🛒 Spesa (60/40)</button>
+          <button type="button" class="quick-chip-btn" data-preset="bollette">⚡ Utenze (50/50)</button>
+          <button type="button" class="quick-chip-btn" data-preset="pulizie">🧹 Casa (60/40)</button>
+          <button type="button" class="quick-chip-btn" data-preset="ristoranti">🍕 Cena (50/50)</button>
+          <button type="button" class="quick-chip-btn" data-preset="salute">💊 Farmacia</button>
+        </div>
+      </div>
+
+      <!-- Quick Action Toolbar -->
+      <section class="action-toolbar">
+        <button class="btn btn-primary btn-add-expense" id="btnOpenNewExpenseModal">
+          <span class="btn-icon">➕</span> Aggiungi Spesa
+        </button>
+        
+        <button class="btn btn-outline" id="btnCopyFixedModal" title="Copia affitto, utenze fisse e abbonamenti dal mese precedente">
+          📋 Copia Spese Fisse
+        </button>
+
+        <div class="search-filter-box">
+          <input type="text" id="searchInput" placeholder="Cerca tra le spese..." class="input-search">
+          <select id="filterCategory" class="select-filter">
+            <option value="ALL">Tutte le categorie</option>
+          </select>
+          <select id="filterPayer" class="select-filter">
+            <option value="ALL">Tutti i pagatori</option>
+            <option value="partner1">Solo Marco</option>
+            <option value="partner2">Solo Angela</option>
+            <option value="joint">Conto Comune</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- View Navigation Tabs -->
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="tabExpenses">🧾 Lista Spese (<span id="tabCountSpan">0</span>)</button>
+        <button class="tab-btn" data-tab="tabCharts">📊 Grafici & Categorie</button>
+        <button class="tab-btn" data-tab="tabHistory">📈 Storico & Trend</button>
+      </div>
+
+      <!-- TAB 1: LISTA SPESE -->
+      <section id="tabExpenses" class="tab-panel active">
+        <div class="expenses-list" id="expensesListContainer">
+          <!-- Popolato dinamicamente da app.js -->
+          <div class="empty-state">
+            <div class="empty-icon">🛒</div>
+            <h3>Nessuna spesa inserita per questo mese</h3>
+            <p>Clicca su "Aggiungi Spesa" o copia le spese fisse (come affitto e bollette) dal mese scorso!</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: GRAFICI & RIPARTIZIONE -->
+      <section id="tabCharts" class="tab-panel">
+        <div class="charts-grid">
+          
+          <!-- Category Donut Chart -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>Dove vanno i vostri soldi?</h3>
+              <span class="chart-sub">Ripartizione per categoria</span>
+            </div>
+            <div class="chart-body" id="categoryChartContainer">
+              <svg id="donutChartSvg" viewBox="0 0 320 320" class="donut-svg"></svg>
+              <div class="chart-legend" id="chartLegendContainer"></div>
+            </div>
+          </div>
+
+          <!-- Fixed vs Variable Breakdown -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>Spese Fisse vs Variabili</h3>
+              <span class="chart-sub">Affitto/Utenze vs Vita quotidiana</span>
+            </div>
+            <div class="breakdown-bars-box">
+              <div class="bar-metric">
+                <div class="bar-info">
+                  <span>🏠 Spese Fisse (Affitto, Bollette, Condominio)</span>
+                  <strong id="fixedBarAmount">0,00 €</strong>
+                </div>
+                <div class="meter-track">
+                  <div class="meter-bar meter-fixed" id="fixedMeterBar" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <div class="bar-metric">
+                <div class="bar-info">
+                  <span>🛒 Spese Variabili (Spesa, Ristoranti, Arredi, Extra)</span>
+                  <strong id="variableBarAmount">0,00 €</strong>
+                </div>
+                <div class="meter-track">
+                  <div class="meter-bar meter-variable" id="variableMeterBar" style="width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 3: STORICO E TREND RISPARMIO -->
+      <section id="tabHistory" class="tab-panel">
+        <div class="history-card">
+          <div class="chart-header">
+            <h3>Andamento del Risparmio nel Tempo</h3>
+            <span class="chart-sub">Confronto entrate, spese e risparmio mensile</span>
+          </div>
+          <div id="historyBarChartContainer" class="history-chart-wrapper">
+            <!-- Disegnato da app.js -->
+          </div>
+          <div class="history-table-wrapper">
+            <table class="history-table" id="historyTable">
+              <thead>
+                <tr>
+                  <th>Mese</th>
+                  <th>Entrate</th>
+                  <th>Spese</th>
+                  <th>Risparmio</th>
+                  <th>Tasso</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Floating Add Button for Mobile -->
+    <button class="fab-mobile" id="fabMobileAdd" title="Aggiungi Spesa">➕</button>
+
+    <!-- ================= MODALI ================= -->
+
+    <!-- 1. Modal Nuova / Modifica Spesa -->
+    <div class="modal-backdrop" id="modalExpense">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 id="modalExpenseTitle">Aggiungi Nuova Spesa</h2>
+          <button class="modal-close-btn" id="btnCloseExpenseModal">&times;</button>
+        </div>
+        
+        <form id="expenseForm">
+          <input type="hidden" id="expenseEditId" value="">
+
+          <!-- Preset Rapidi nel Modale -->
+          <div class="form-group modal-presets-group">
+            <label class="presets-label">⚡ Compilazione rapida:</label>
+            <div class="modal-presets-row">
+              <button type="button" class="preset-pill" data-preset="spesa">🛒 Spesa</button>
+              <button type="button" class="preset-pill" data-preset="bollette">⚡ Bollette</button>
+              <button type="button" class="preset-pill" data-preset="pulizie">🧹 Casa</button>
+              <button type="button" class="preset-pill" data-preset="ristoranti">🍕 Uscite</button>
+              <button type="button" class="preset-pill" data-preset="salute">💊 Farmacia</button>
+            </div>
+          </div>
+
+          <div class="form-group amount-group">
+            <label for="expenseAmount">Importo Spesa (€)</label>
+            <div class="amount-input-wrapper">
+              <span class="currency-symbol">€</span>
+              <input type="number" id="expenseAmount" step="0.01" min="0.01" required placeholder="0.00" autofocus>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="expenseTitle">Descrizione / Voce</label>
+            <input type="text" id="expenseTitle" required placeholder="Es. Affitto, Bolletta Enel, Spesa Esselunga, Tavolo IKEA">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="expenseCategory">Categoria</label>
+              <select id="expenseCategory" required>
+                <option value="spesa">🛒 Spesa & Supermercato</option>
+                <option value="bollette">⚡ Luce, Gas & Acqua</option>
+                <option value="internet">🌐 Internet & Telefonia</option>
+                <option value="affitto">🏠 Affitto & Casa</option>
+                <option value="condominio">🏢 Spese Condominiali</option>
+                <option value="tari">🗑️ Tassa Rifiuti (TARI)</option>
+                <option value="arredo">🛋️ Mobili & Arredi Casa</option>
+                <option value="pulizie">🧹 Cura Casa & Detersivi</option>
+                <option value="manutenzione">🔧 Manutenzione & Fai-da-te</option>
+                <option value="ristoranti">🍕 Cene Fuori & Uscite</option>
+                <option value="trasporti">🚗 Auto, Benzina & Trasporti</option>
+                <option value="salute">💊 Salute & Farmacia</option>
+                <option value="svago">🎬 Svago, Cinema & Viaggi</option>
+                <option value="animali">🐾 Animali Domestici</option>
+                <option value="imprevisti">⚠️ Imprevisti & Varie</option>
+              </select>
+            </div>
+
+            <div class="form-group flex-1">
+              <label for="expenseDate">Data Spesa</label>
+              <input type="date" id="expenseDate" required>
+            </div>
+          </div>
+
+          <div class="form-group switch-group">
+            <label class="switch-label">
+              <input type="checkbox" id="expenseIsFixed">
+              <span class="switch-slider"></span>
+              <span class="switch-text">🏠 Spesa Fissa / Ricorrente (Affitto, bolletta fissa, abbonamento)</span>
+            </label>
+            <small class="field-hint">Le spese fisse possono essere copiate automaticamente nei mesi successivi con 1 click.</small>
+          </div>
+
+          <div class="form-group">
+            <label>Chi ha pagato?</label>
+            <div class="radio-pill-group" id="paidByPillGroup">
+              <label class="radio-pill">
+                <input type="radio" name="paidBy" value="partner1" checked>
+                <span class="pill-content">👨‍💼 <span class="lbl-p1">Marco</span></span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="paidBy" value="partner2">
+                <span class="pill-content">👩‍💼 <span class="lbl-p2">Angela</span></span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="paidBy" value="joint">
+                <span class="pill-content">💳 Conto Comune</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Come si divide questa spesa?</label>
+            <div class="radio-pill-group" id="splitTypePillGroup">
+              <label class="radio-pill">
+                <input type="radio" name="splitType" value="60_40">
+                <span class="pill-content" title="Spesa comune di coppia condivisa">🛒 60% <span class="lbl-p1">Marco</span> / 40% <span class="lbl-p2">Angela</span> (Insieme)</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="splitType" value="100_p1">
+                <span class="pill-content" title="Spesa fatta solo per sé / era da solo">👤 100% <span class="lbl-p1">Marco</span> (Solo per lui)</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="splitType" value="100_p2">
+                <span class="pill-content" title="Spesa fatta solo per sé / era da sola">👤 100% <span class="lbl-p2">Angela</span> (Sola per lei)</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="splitType" value="50_50" checked>
+                <span class="pill-content">⚖️ 50% / 50% (Bollette & Standard)</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="splitType" value="turn_rent">
+                <span class="pill-content" title="Un mese per uno: a Settembre Marco, ad Ottobre Angela">🏠 Turno Affitto (1 mese a testa)</span>
+              </label>
+              <label class="radio-pill">
+                <input type="radio" name="splitType" value="proportional">
+                <span class="pill-content" title="Divisa in base al peso degli stipendi">📊 Proporzionale stipendio</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="expenseNotes">Note (opzionale)</label>
+            <input type="text" id="expenseNotes" placeholder="Es. Scontrino n. 42, acquisto diviso in 2 rate">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" id="btnCancelExpense">Annulla</button>
+            <button type="submit" class="btn btn-primary" id="btnSaveExpense">Salva Spesa</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 2. Modal Modifica Stipendi & Entrate -->
+    <div class="modal-backdrop" id="modalIncomes">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>Stipendi & Entrate di <span id="incomesModalMonth">Settembre 2026</span></h2>
+          <button class="modal-close-btn" id="btnCloseIncomesModal">&times;</button>
+        </div>
+
+        <form id="incomesForm">
+          <p class="modal-intro">Ogni mese il budget parte dagli stipendi netti di entrambi per calcolare quanto riuscite a risparmiare a fine mese.</p>
+
+          <div class="form-group">
+            <label for="inputIncomeP1">Stipendio <strong class="lbl-p1">Marco</strong> (€)</label>
+            <div class="amount-input-wrapper">
+              <span class="currency-symbol">€</span>
+              <input type="number" id="inputIncomeP1" step="0.01" min="0" required placeholder="2700.00">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="inputIncomeP2">Stipendio <strong class="lbl-p2">Angela</strong> (€)</label>
+            <div class="amount-input-wrapper">
+              <span class="currency-symbol">€</span>
+              <input type="number" id="inputIncomeP2" step="0.01" min="0" required placeholder="2200.00">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="inputIncomeExtra">Altre Entrate / Extra (€)</label>
+            <div class="amount-input-wrapper">
+              <span class="currency-symbol">€</span>
+              <input type="number" id="inputIncomeExtra" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <small class="field-hint">Es. Rimborsi, bonus, regali, vendite dell'usato.</small>
+          </div>
+
+          <div class="form-group switch-group">
+            <label class="switch-label">
+              <input type="checkbox" id="checkSaveAsDefaultSalaries" checked>
+              <span class="switch-slider"></span>
+              <span class="switch-text">Memorizza come stipendi predefiniti per i prossimi mesi</span>
+            </label>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" id="btnCancelIncomes">Annulla</button>
+            <button type="submit" class="btn btn-primary">Aggiorna Budget</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 3. Modal QR Code & Collegamento Smartphone -->
+    <div class="modal-backdrop" id="modalShare">
+      <div class="modal-card modal-center" style="max-width: 540px;">
+        <div class="modal-header">
+          <h2>📱 App per Smartphone (Angela & Marco)</h2>
+          <button class="modal-close-btn" id="btnCloseShareModal">&times;</button>
+        </div>
+        <div class="share-modal-body">
+          <p style="margin-bottom: 12px; font-size: 0.9rem; color: var(--text-muted);">
+            Apri il link dallo smartphone per sincronizzare le spese in tempo reale e installare l'app sulla schermata Home:
+          </p>
+
+          <!-- Status badge del link attivo (Fisso Permanente vs Provvisorio) -->
+          <div class="share-type-badge-wrapper" id="shareTypeBadgeWrapper" style="margin-bottom: 14px;">
+            <span class="badge badge-success" id="shareTypeBadge">🔒 Link Fisso Permanente</span>
+          </div>
+
+          <div class="qr-container" id="qrContainer">
+            <!-- QR generato via SVG da app.js -->
+            <div class="qr-placeholder" id="qrCodeWrapper"></div>
+          </div>
+
+          <div class="share-url-box">
+            <input type="text" id="shareUrlInput" readonly title="Link applicazione per smartphone">
+            <button class="btn btn-secondary btn-sm" id="btnCopyShareUrl">📋 Copia</button>
+          </div>
+
+          <!-- Pulsanti di Condivisione Rapida -->
+          <div class="share-actions-row" style="margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
+            <button type="button" class="btn btn-outline btn-sm" id="btnShareWhatsApp">💬 Invia su WhatsApp</button>
+            <button type="button" class="btn btn-outline btn-sm" id="btnToggleShareType">🏠 Mostra Wi-Fi Locale</button>
+            <button type="button" class="btn btn-outline btn-sm" id="btnBroadcastTestNotif">🔔 Invia Notifica</button>
+          </div>
+
+          <!-- Guida Installazione PWA per Angela e Marco -->
+          <div class="share-tips" style="margin-bottom: 16px;">
+            <div class="tip-item">
+              <strong>📲 Per Angela su iPhone (Safari):</strong>
+              <div style="font-size: 0.8rem; margin-top: 4px; line-height: 1.4;">
+                1. Apri il link con Safari sul telefono.<br>
+                2. Tocca l'icona <strong>Condividi</strong> in basso (il quadrato con la freccia in su: ⎋ / 📤).<br>
+                3. Scorri e tocca <strong>"Aggiungi alla schermata Home"</strong> (➕).<br>
+                4. Tocca <strong>"Aggiungi"</strong> in alto a destra. L'icona 🏡 Casa & Spese comparirà sul telefono come un'app normale!
+              </div>
+            </div>
+            <div class="tip-item">
+              <strong>🤖 Per Marco su Android (Chrome):</strong>
+              <div style="font-size: 0.8rem; margin-top: 4px; line-height: 1.4;">
+                Tocca il popup <strong>"Installa Casa & Spese"</strong> in basso, oppure premi i 3 puntini in alto a destra e seleziona <strong>"Installa app"</strong>.
+              </div>
+            </div>
+          </div>
+
+          <!-- Sezione Configurazione Link Fisso Permanente (Token Cloudflare Zero Trust) -->
+          <div class="fixed-config-box" style="background: var(--bg-card-subtle); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px; text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" id="headerFixedConfigToggle">
+              <span style="font-weight: 700; font-size: 0.88rem; color: var(--text-main);">
+                🔒 Configura Link Fisso Permanente (Cloudflare Token)
+              </span>
+              <button type="button" class="btn btn-outline btn-sm" id="btnToggleFixedConfig" style="padding: 2px 8px; font-size: 0.75rem;">Espandi</button>
+            </div>
+
+            <div id="fixedConfigContent" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color);">
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
+                Un <strong>Named Tunnel</strong> gratuito con Cloudflare Zero Trust mantiene lo stesso URL HTTPS permanente per sempre, sopravvivendo ai riavvii del PC o del router.
+              </p>
+              
+              <div class="form-group" style="margin-bottom: 10px;">
+                <label for="inputTunnelToken" style="font-size: 0.8rem; font-weight: 600;">Cloudflare Tunnel Token:</label>
+                <input type="password" id="inputTunnelToken" placeholder="Incolla il token (es. eyJhIjoi...)" style="width: 100%; font-size: 0.8rem; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-family: monospace;">
+                <small style="font-size: 0.75rem; color: var(--text-muted);">dash.cloudflare.com &rarr; Zero Trust &rarr; Networks &rarr; Tunnels &rarr; Add Tunnel (servizio: http://localhost:3000)</small>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="inputFixedUrl" style="font-size: 0.8rem; font-weight: 600;">URL Fisso Assegnato (Dominio HTTPS):</label>
+                <input type="text" id="inputFixedUrl" placeholder="Es. https://spese.tuodominio.it" style="width: 100%; font-size: 0.8rem; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <small style="font-size: 0.75rem; color: var(--text-muted);">L'indirizzo web permanente associato al tunnel su cui installerete la PWA</small>
+              </div>
+
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-primary btn-sm" id="btnSaveTunnelConfig">💾 Salva e Connetti Link Fisso</button>
+                <button type="button" class="btn btn-outline btn-sm" id="btnTestTunnelReachability">🧪 Test Connettività</button>
+                <button type="button" class="btn btn-outline btn-sm" id="btnResetTunnelConfig" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.4);">🔄 Ripristina Quick Tunnel</button>
+              </div>
+
+              <div id="tunnelConfigStatusMsg" style="margin-top: 8px; font-size: 0.8rem; display: none;"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Modal Salda / Conguaglio -->
+    <div class="modal-backdrop" id="modalSettlement">
+      <div class="modal-card modal-center">
+        <div class="modal-header">
+          <h2>🤝 Registra Conguaglio</h2>
+          <button class="modal-close-btn" id="btnCloseSettlementModal">&times;</button>
+        </div>
+        <form id="settlementForm">
+          <p id="settlementPromptText">Registra il rimborso tra voi per pareggiare le spese anticipate questo mese.</p>
+          
+          <div class="form-group">
+            <label for="settlementAmount">Importo da saldare (€)</label>
+            <div class="amount-input-wrapper">
+              <span class="currency-symbol">€</span>
+              <input type="number" id="settlementAmount" step="0.01" min="0.01" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="settlementNotes">Note (opzionale)</label>
+            <input type="text" id="settlementNotes" placeholder="Es. Bonifico / Satispay effettuato">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" id="btnCancelSettlement">Annulla</button>
+            <button type="submit" class="btn btn-primary">Registra Pareggio</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 5. Modal Impostazioni di Coppia -->
+    <div class="modal-backdrop" id="modalSettings">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>⚙️ Impostazioni di Coppia</h2>
+          <button class="modal-close-btn" id="btnCloseSettingsModal">&times;</button>
+        </div>
+        <form id="settingsForm">
+          
+          <div class="form-group">
+            <label for="settingP1Name">Nome Partner 1</label>
+            <input type="text" id="settingP1Name" required placeholder="Marco">
+          </div>
+
+          <div class="form-group">
+            <label for="settingP2Name">Nome Partner 2 (Angela)</label>
+            <input type="text" id="settingP2Name" required placeholder="Angela">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="settingDefIncomeP1">Stipendio Base Partner 1 (€)</label>
+              <input type="number" id="settingDefIncomeP1" step="0.01" placeholder="2700.00">
+            </div>
+            <div class="form-group flex-1">
+              <label for="settingDefIncomeP2">Stipendio Base Partner 2 (€)</label>
+              <input type="number" id="settingDefIncomeP2" step="0.01" placeholder="2200.00">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Metodo di divisione predefinito</label>
+            <select id="settingSplitPref">
+              <option value="50_50">50% / 50% (Standard paritario)</option>
+              <option value="proportional">Proporzionale agli stipendi (Equità reddituale)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="settingFoodBudget">🛒 Tetto Spesa Alimentare / Supermercato (€)</label>
+            <div class="amount-input-wrapper">
+              <span class="currency-symbol">€</span>
+              <input type="number" id="settingFoodBudget" step="10" min="50" placeholder="400.00">
+            </div>
+            <small class="field-hint">Soglia mensile concordata in primis da monitorare per la spesa cibo.</small>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="settingRestaurantBudget">🍕 Tetto Cene & Uscite (€)</label>
+              <div class="amount-input-wrapper">
+                <span class="currency-symbol">€</span>
+                <input type="number" id="settingRestaurantBudget" step="10" min="0" placeholder="150.00">
+              </div>
+            </div>
+            <div class="form-group flex-1">
+              <label for="settingCleaningBudget">🧹 Tetto Casa & Detersivi (€)</label>
+              <div class="amount-input-wrapper">
+                <span class="currency-symbol">€</span>
+                <input type="number" id="settingCleaningBudget" step="10" min="0" placeholder="100.00">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+            <label>🌐 Link Fisso & PWA Smartphone (Angela & Marco)</label>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
+              Configura il link permanente per accedere fuori casa su 4G/5G e installare l'app sulla schermata Home una sola volta.
+            </p>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-outline btn-sm" id="btnSettingsOpenFixedTunnel">⚙️ Gestisci Link Fisso & QR Code</button>
+              <span id="settingsTunnelBadgeText" class="badge badge-success" style="font-size: 0.78rem;">Verifica stato...</span>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+            <label>Test Notifiche Istantanee</label>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Verifica la ricezione degli avvisi per spese e affitto su questo dispositivo e su tutti gli smartphone collegati.</p>
+            <button type="button" class="btn btn-outline btn-sm" id="btnSettingsTestNotif">🔔 Invia Notifica di Prova</button>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" id="btnCancelSettings">Annulla</button>
+            <button type="submit" class="btn btn-primary">Salva Impostazioni</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toastNotification" class="toast"></div>
+
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

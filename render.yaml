@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: casa-spese
+    env: node
+    plan: starter
+    region: frankfurt
+    buildCommand: ""
+    startCommand: node server.js
+    disk:
+      name: casa-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22.14.0"
+      - key: NODE_ENV
+        value: production
+      - key: NO_TUNNEL
+        value: "1"
+      - key: PORT
+        value: "3000"
+      - key: DB_PATH
+        value: /var/data/spese_coppia.db
