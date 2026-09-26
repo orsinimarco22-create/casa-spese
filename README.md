@@ -5,10 +5,28 @@ Un'applicazione web progressiva (PWA) collaborativa in tempo reale, installabile
 ---
 
 ## ⚡ Avvio Rapido
-
-Per avviare l'applicazione in qualsiasi momento:
+Per avviare l'applicazione in qualsiasi momento in locale sul PC:
 - Fai doppio clic sul file **`start.bat`**.
 - L'app si aprirà automaticamente nel browser all'indirizzo **`http://localhost:3000`**.
+
+---
+
+## ☁️ Deploy Cloud 24/7 su Render (Funziona anche a PC Spento!)
+
+Perché Marco ed Angela possano utilizzare l'app dallo smartphone **in qualunque momento anche quando il computer di casa è completamente spento**, l'applicazione è configurata per l'hosting continuo nel cloud su **Render.com**:
+
+### 🎯 Vantaggi della versione Cloud:
+1. **Attiva 24 ore su 24, 7 giorni su 7**: Angela può inserire la spesa dal supermercato o consultare il saldo in qualsiasi istante senza che il computer debba essere acceso.
+2. **Link HTTPS Fisso & Sicuro**: Un indirizzo permanente (es. `https://casa-spese.onrender.com`) protetto da certificato SSL automatico.
+3. **Archiviazione Dati Persistente (SQLite)**: Grazie al volume `/var/data` configurato in `render.yaml` (`DB_PATH=/var/data/spese_coppia.db`), il database non viene mai resettato né cancellato durante i riavvii.
+4. **Copia Iniziale Automatica**: Al primo avvio in cloud, il server copia automaticamente i dati attuali di Marco ed Angela (stipendi, affitto, bollette) nel volume persistente.
+5. **Backup & Restore a 1 Clic**: Dalle **Impostazioni**, è sempre possibile scaricare un backup completo in formato JSON o `.db` e ripristinarlo in qualsiasi momento.
+
+### 🚀 Come eseguire il Deploy in 1 Clic:
+1. Fai doppio clic sul file **`deploy_to_render.bat`** (oppure esegui `npm run deploy:render`).
+2. Lo script rileva l'accesso al tuo account e apre la pagina **Deploy to Render** pre-compilata.
+3. Clicca sul pulsante **"Apply"** su Render: l'applicazione verrà compilata ed avviata automaticamente con Node 22 e volume persistente.
+4. Condividi il link HTTPS risultante con Angela (o scansiona il QR code direttamente dall'app) e installatela come PWA sullo smartphone!
 
 ---
 
