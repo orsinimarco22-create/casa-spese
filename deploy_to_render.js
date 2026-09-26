@@ -92,7 +92,7 @@ async function main() {
     console.log('      [1] Login veloce 1-clic a GitHub dal browser (consigliato se hai già GitHub)');
     console.log('      [2] Apri direttamente la schermata di deploy su Render Dashboard');
     
-    let choice = '1';
+    let choice = '2';
     if (process.stdin.isTTY) {
       choice = await promptQuestion('\n   Seleziona opzione [1 o 2, predefinito 1]: ') || '1';
     }
