@@ -116,6 +116,9 @@ function parseJsonBody(req) {
 function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, X-Client-Id'
@@ -447,12 +450,18 @@ const server = http.createServer(async (req, res) => {
     // Aggiornamento stipendi & budget
     if (pathname === '/api/incomes' && method === 'POST') {
       const body = await parseJsonBody(req);
-      const { month, income_partner1, income_partner2, extra_income, notes } = body;
+      const { month, income_partner1, income_partner2, extra_income, notes, saveAsDefault } = body;
       if (!month) return sendJson(res, 400, { error: 'Mese obbligatorio' });
 
-      const updated = db.updateMonthlyIncomes(month, income_partner1, income_partner2, extra_income, notes);
-      broadcastEvent('INCOMES_UPDATED', { month }, requestClientId);
-      return sendJson(res, 200, updated);
+      const updated = db.updateMonthlyIncomes(month, income_partner1, income_partner2, extra_income, notes, !!saveAsDefault);
+      const summary = db.calculateMonthSummary(month);
+      const settings = db.getSettings();
+
+      broadcastEvent('INCOMES_UPDATED', { month, incomes: updated, summary }, requestClientId);
+      if (saveAsDefault) {
+        broadcastEvent('SETTINGS_UPDATED', settings, requestClientId);
+      }
+      return sendJson(res, 200, { success: true, month, incomes: updated, summary, settings });
     }
 
     // Aggiungi Spesa
@@ -582,9 +591,14 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/settings' && method === 'POST') {
       const body = await parseJsonBody(req);
-      const updated = db.updateSettings(body);
+      const currentYearMonth = new Date().toISOString().slice(0, 7);
+      const targetMonth = body.month || parsedUrl.query.month || currentYearMonth;
+      const updated = db.updateSettings(body, targetMonth);
+      const summary = db.calculateMonthSummary(targetMonth);
+
       broadcastEvent('SETTINGS_UPDATED', updated, requestClientId);
-      return sendJson(res, 200, updated);
+      broadcastEvent('INCOMES_UPDATED', { month: targetMonth, summary }, requestClientId);
+      return sendJson(res, 200, { ...updated, _summary: summary });
     }
 
     // Categorie

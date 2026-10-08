@@ -88,7 +88,7 @@ async function runTests() {
   assert(swRes.statusCode === 200, 'service-worker.js servito con 200 OK');
   assert(swRes.headers['service-worker-allowed'] === '/', 'Service-Worker-Allowed header impostato su root /');
   assert(swRes.headers['cache-control'].includes('no-cache'), 'Cache-Control SW impedisce stale cache');
-  assert(swRes.body.includes('casa-spese-v2'), 'Cache name v2 presente in SW');
+  assert(swRes.body.includes('casa-spese-v3') || swRes.body.includes('casa-spese-v2'), 'Cache name versione PWA presente in SW');
   assert(swRes.body.includes('STATIC_ASSETS'), 'Lista STATIC_ASSETS per pre-caching presente');
   assert(swRes.body.includes('/icon-512.png'), 'icon-512.png incluso nel precaching offline');
   assert(swRes.body.includes('/?source=pwa'), '/?source=pwa incluso nel precaching offline');

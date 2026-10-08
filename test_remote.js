@@ -1,7 +1,20 @@
 // test_remote.js - Test completo di apertura remota e funzionamento sottocartelle
 const http = require('http');
+const os = require('os');
 
-const LOCAL_IP = '192.168.1.139';
+function getLocalIp() {
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
+
+const LOCAL_IP = process.env.TEST_HOST || getLocalIp();
 const PORT = 3000;
 const BASE_URL = `http://${LOCAL_IP}:${PORT}`;
 

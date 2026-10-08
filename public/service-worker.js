@@ -1,5 +1,5 @@
 // service-worker.js - PWA Offline Shell, Caching & Notifiche Native per Casa & Spese
-const CACHE_NAME = 'casa-spese-v2';
+const CACHE_NAME = 'casa-spese-v3';
 const STATIC_ASSETS = [
   '/',
   '/?source=pwa',
@@ -140,7 +140,7 @@ self.addEventListener('fetch', (event) => {
           return networkRes;
         })
         .catch(async () => {
-          const cachedRes = await caches.match(req);
+          const cachedRes = await caches.match(req) || await caches.match(req, { ignoreSearch: true });
           if (cachedRes) return cachedRes;
           return new Response(JSON.stringify({ offline: true, error: 'Dispositivo non connesso alla rete o server PC spento' }), {
             status: 503,

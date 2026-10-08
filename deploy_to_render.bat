@@ -1,5 +1,5 @@
 @echo off
-title Deploy Cloud 24/7 su Render - Casa & Spese (Marco ed Angela)
+title Deploy Cloud 24/7 su Render - Casa ^& Spese (Marco ed Angela)
 cd /d "%~dp0"
 
 echo ========================================================

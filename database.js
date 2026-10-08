@@ -31,6 +31,12 @@ class DatabaseManager {
     }
 
     this.db = new DatabaseSync(this.filePath);
+    try {
+      this.db.exec('PRAGMA journal_mode = WAL;');
+      this.db.exec('PRAGMA synchronous = NORMAL;');
+    } catch (e) {
+      console.warn('[DB] Impossibile abilitare WAL mode:', e.message);
+    }
     this.initTables();
     this.seedDefaultData();
   }
@@ -156,11 +162,61 @@ class DatabaseManager {
     return result;
   }
 
-  updateSettings(newSettings) {
+  updateSettings(newSettings, targetMonth = null) {
+    const curSettings = this.getSettings();
+    const oldP1 = curSettings.default_income_p1 !== undefined ? Number(curSettings.default_income_p1) : null;
+    const oldP2 = curSettings.default_income_p2 !== undefined ? Number(curSettings.default_income_p2) : null;
+
     const update = this.db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
     for (const [key, val] of Object.entries(newSettings)) {
+      if (key === 'month' || key === 'apply_to_current_month') continue;
       update.run(key, String(val));
     }
+
+    const hasP1 = newSettings.default_income_p1 !== undefined && newSettings.default_income_p1 !== null && !isNaN(Number(newSettings.default_income_p1));
+    const hasP2 = newSettings.default_income_p2 !== undefined && newSettings.default_income_p2 !== null && !isNaN(Number(newSettings.default_income_p2));
+
+    const p1Val = hasP1 ? Number(newSettings.default_income_p1) : null;
+    const p2Val = hasP2 ? Number(newSettings.default_income_p2) : null;
+
+    const salariesActuallyChanged = (p1Val !== null && p1Val !== oldP1) || (p2Val !== null && p2Val !== oldP2) || !!newSettings.apply_to_current_month;
+
+    if (salariesActuallyChanged && (hasP1 || hasP2)) {
+      const monthToUpdate = targetMonth || newSettings.month || new Date().toISOString().slice(0, 7);
+
+      // Aggiorna o crea il record nel mese target
+      const cur = this.db.prepare('SELECT * FROM monthly_incomes WHERE month = ?').get(monthToUpdate);
+      const curP1 = cur ? Number(cur.income_partner1) : 0;
+      const curP2 = cur ? Number(cur.income_partner2) : 0;
+      const finalP1 = p1Val !== null ? p1Val : curP1;
+      const finalP2 = p2Val !== null ? p2Val : curP2;
+      const extra = cur ? (Number(cur.extra_income) || 0) : 0;
+      const notes = cur ? (cur.notes || '') : 'Aggiornato da impostazioni stipendi predefiniti';
+
+      this.updateMonthlyIncomes(monthToUpdate, finalP1, finalP2, extra, notes);
+
+      // Aggiorna anche tutti i mesi correnti e successivi (MAI mesi storici passati!)
+      if (p1Val !== null && p2Val !== null) {
+        this.db.prepare(`
+          UPDATE monthly_incomes 
+          SET income_partner1 = ?, income_partner2 = ?
+          WHERE month >= ?
+        `).run(p1Val, p2Val, monthToUpdate);
+      } else if (p1Val !== null) {
+        this.db.prepare(`
+          UPDATE monthly_incomes 
+          SET income_partner1 = ?
+          WHERE month >= ?
+        `).run(p1Val, monthToUpdate);
+      } else if (p2Val !== null) {
+        this.db.prepare(`
+          UPDATE monthly_incomes 
+          SET income_partner2 = ?
+          WHERE month >= ?
+        `).run(p2Val, monthToUpdate);
+      }
+    }
+
     return this.getSettings();
   }
 
@@ -200,7 +256,11 @@ class DatabaseManager {
     return data;
   }
 
-  updateMonthlyIncomes(month, incomeP1, incomeP2, extraIncome = 0, notes = '') {
+  updateMonthlyIncomes(month, incomeP1, incomeP2, extraIncome = 0, notes = '', saveAsDefault = false) {
+    const p1 = Number(incomeP1) || 0;
+    const p2 = Number(incomeP2) || 0;
+    const extra = Number(extraIncome) || 0;
+
     this.db.prepare(`
       INSERT INTO monthly_incomes (month, income_partner1, income_partner2, extra_income, notes)
       VALUES (?, ?, ?, ?, ?)
@@ -209,7 +269,21 @@ class DatabaseManager {
         income_partner2 = excluded.income_partner2,
         extra_income = excluded.extra_income,
         notes = excluded.notes
-    `).run(month, Number(incomeP1) || 0, Number(incomeP2) || 0, Number(extraIncome) || 0, notes || '');
+    `).run(month, p1, p2, extra, notes || '');
+
+    if (saveAsDefault) {
+      const updateSetting = this.db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+      updateSetting.run('default_income_p1', String(p1));
+      updateSetting.run('default_income_p2', String(p2));
+
+      // Aggiorna anche tutti i mesi successivi (MAI mesi storici passati!)
+      this.db.prepare(`
+        UPDATE monthly_incomes 
+        SET income_partner1 = ?, income_partner2 = ?
+        WHERE month > ?
+      `).run(p1, p2, month);
+    }
+
     return this.getMonthlyIncomes(month);
   }
 
@@ -386,9 +460,10 @@ class DatabaseManager {
     const incExtra = Number(incomes.extra_income) || 0;
     const totalIncome = incP1 + incP2 + incExtra;
 
-    // Calcolo proporzione stipendi (se totale > 0)
-    const ratioP1 = totalIncome > 0 ? (incP1 / (incP1 + incP2 || 1)) : 0.5;
-    const ratioP2 = totalIncome > 0 ? (incP2 / (incP1 + incP2 || 1)) : 0.5;
+    // Calcolo proporzione stipendi (se base stipendi > 0)
+    const baseSalaries = incP1 + incP2;
+    const ratioP1 = baseSalaries > 0 ? (incP1 / baseSalaries) : 0.5;
+    const ratioP2 = baseSalaries > 0 ? (incP2 / baseSalaries) : 0.5;
 
     let totalExpenses = 0;
     let totalFixed = 0;

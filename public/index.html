@@ -99,7 +99,7 @@
         <div class="hero-primary-grid">
           
           <!-- Card Entrate -->
-          <div class="finance-card card-income">
+          <div class="finance-card card-income clickable-income-card" id="cardIncomeHero" title="Tocca per modificare stipendi del mese">
             <div class="card-head">
               <span class="card-title">💰 Entrate Totali</span>
               <button class="tiny-action-btn" id="btnEditIncomes" title="Modifica stipendi del mese">✏️ Modifica</button>
@@ -142,11 +142,12 @@
               <span class="partner-avatar">👨‍💼</span>
               <div class="partner-identity">
                 <strong id="partner1NameDisplay">Marco</strong>
-                <span class="partner-ratio" id="partner1RatioDisplay">Stipendio: 2.700,00 €</span>
+                <span class="partner-ratio clickable-income-pill" id="partner1RatioDisplay" title="Tocca per modificare lo stipendio di Marco">Stipendio: 2.700,00 €</span>
               </div>
+              <button type="button" class="tiny-action-btn btn-edit-partner-income" id="btnEditIncomeP1" title="Modifica stipendio Marco">✏️ Modifica</button>
             </div>
             <div class="partner-stats partner-receipt">
-              <div class="stat-row base-income-row">
+              <div class="stat-row base-income-row clickable-income-row" id="partner1BaseIncomeRow" title="Tocca per modificare lo stipendio di Marco">
                 <span>💰 Stipendio iniziale:</span>
                 <strong id="partner1BaseIncomeDisplay">+ 2.700,00 €</strong>
               </div>
@@ -179,11 +180,12 @@
               <span class="partner-avatar">👩‍💼</span>
               <div class="partner-identity">
                 <strong id="partner2NameDisplay">Angela</strong>
-                <span class="partner-ratio" id="partner2RatioDisplay">Stipendio: 2.200,00 €</span>
+                <span class="partner-ratio clickable-income-pill" id="partner2RatioDisplay" title="Tocca per modificare lo stipendio di Angela">Stipendio: 2.200,00 €</span>
               </div>
+              <button type="button" class="tiny-action-btn btn-edit-partner-income" id="btnEditIncomeP2" title="Modifica stipendio Angela">✏️ Modifica</button>
             </div>
             <div class="partner-stats partner-receipt">
-              <div class="stat-row base-income-row">
+              <div class="stat-row base-income-row clickable-income-row" id="partner2BaseIncomeRow" title="Tocca per modificare lo stipendio di Angela">
                 <span>💰 Stipendio iniziale:</span>
                 <strong id="partner2BaseIncomeDisplay">+ 2.200,00 €</strong>
               </div>

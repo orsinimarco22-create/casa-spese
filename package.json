@@ -11,6 +11,7 @@
     "test:notifications": "node test_notifications.js",
     "test:pwa": "node test_fixed_pwa.js",
     "test:remote": "node test_remote.js",
+    "test:cdp": "node test_cdp_real_browser.js",
     "deploy:render": "node deploy_to_render.js"
   },
   "engines": {

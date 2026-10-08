@@ -14,7 +14,7 @@
 
   // --- STATO DELL'APPLICAZIONE ---
   const state = {
-    currentMonth: getTodayMonthString(), // "YYYY-MM"
+    currentMonth: getInitialMonthString(), // "YYYY-MM" (con persistenza localStorage)
     data: null,
     categories: [],
     settings: {},
@@ -57,6 +57,8 @@
     partner1NameDisplay: document.getElementById('partner1NameDisplay'),
     partner1RatioDisplay: document.getElementById('partner1RatioDisplay'),
     partner1BaseIncomeDisplay: document.getElementById('partner1BaseIncomeDisplay'),
+    partner1BaseIncomeRow: document.getElementById('partner1BaseIncomeRow'),
+    btnEditIncomeP1: document.getElementById('btnEditIncomeP1'),
     partner1RentRow: document.getElementById('partner1RentRow'),
     partner1RentDeduction: document.getElementById('partner1RentDeduction'),
     partner1BillsDeduction: document.getElementById('partner1BillsDeduction'),
@@ -68,6 +70,8 @@
     partner2NameDisplay: document.getElementById('partner2NameDisplay'),
     partner2RatioDisplay: document.getElementById('partner2RatioDisplay'),
     partner2BaseIncomeDisplay: document.getElementById('partner2BaseIncomeDisplay'),
+    partner2BaseIncomeRow: document.getElementById('partner2BaseIncomeRow'),
+    btnEditIncomeP2: document.getElementById('btnEditIncomeP2'),
     partner2RentRow: document.getElementById('partner2RentRow'),
     partner2RentDeduction: document.getElementById('partner2RentDeduction'),
     partner2BillsDeduction: document.getElementById('partner2BillsDeduction'),
@@ -75,6 +79,7 @@
     partner2OtherRow: document.getElementById('partner2OtherRow'),
     partner2OtherDeduction: document.getElementById('partner2OtherDeduction'),
     partner2SavingsDisplay: document.getElementById('partner2SavingsDisplay'),
+    cardIncomeHero: document.getElementById('cardIncomeHero'),
 
     // Next Rent Ticker & Badges
     nextRentTicker: document.getElementById('nextRentTicker'),
@@ -228,6 +233,16 @@
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
 
+  function getInitialMonthString() {
+    try {
+      const saved = localStorage.getItem('casa_selected_month');
+      if (saved && /^\d{4}-\d{2}$/.test(saved)) {
+        return saved;
+      }
+    } catch (e) {}
+    return getTodayMonthString();
+  }
+
   function getTodayDateString() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -256,10 +271,22 @@
     }, duration);
   }
 
+  function updateOnlineStatus() {
+    try {
+      if (navigator.onLine) {
+        if (DOM.offlineIndicator) DOM.offlineIndicator.style.display = 'none';
+      } else {
+        if (DOM.offlineIndicator) DOM.offlineIndicator.style.display = 'flex';
+      }
+    } catch (e) {}
+  }
+
   // --- API CALLS ---
   async function fetchMonthState(month) {
     try {
-      const res = await fetch(`/api/state?month=${encodeURIComponent(month)}`);
+      const res = await fetch(`/api/state?month=${encodeURIComponent(month)}&_t=${Date.now()}`, {
+        cache: 'no-store'
+      });
       if (!res.ok) {
         showToast('⚠️ Modalità offline: impossibile caricare nuovi dati');
         return null;
@@ -655,6 +682,9 @@
   // --- CARICAMENTO E RENDERING STATO ---
   async function loadMonthData(month, updateUI = true) {
     state.currentMonth = month;
+    try {
+      localStorage.setItem('casa_selected_month', month);
+    } catch (e) {}
     const res = await fetchMonthState(month);
     if (!res) return;
 
@@ -1337,7 +1367,15 @@
     DOM.expenseEditId.value = '';
     DOM.modalExpenseTitle.textContent = 'Aggiungi Nuova Spesa';
     DOM.expenseForm.reset();
-    DOM.expenseDate.value = getTodayDateString();
+    
+    // Se il mese visualizzato è il mese corrente (oggi), usa la data di oggi;
+    // se l'utente sta visualizzando un altro mese, pre-compila con il 1° di quel mese.
+    const today = getTodayDateString();
+    if (today.slice(0, 7) === state.currentMonth) {
+      DOM.expenseDate.value = today;
+    } else {
+      DOM.expenseDate.value = `${state.currentMonth}-01`;
+    }
     DOM.expenseIsFixed.checked = false;
 
     // Assicurati che le opzioni siano presenti
@@ -1426,6 +1464,12 @@
       if (!res.ok) throw new Error('Errore nel salvataggio spesa');
       DOM.modalExpense.classList.remove('open');
       showToast(id ? '✅ Spesa aggiornata!' : '✅ Spesa aggiunta!');
+      
+      // Assicura che l'interfaccia rimanga o si posizioni sul mese della spesa inserita
+      state.currentMonth = month;
+      try {
+        localStorage.setItem('casa_selected_month', month);
+      } catch (err) {}
       await loadMonthData(state.currentMonth);
     } catch (err) {
       console.error(err);
@@ -1448,14 +1492,45 @@
   }
 
   // --- GESTIONE STIPENDI & ENTRATE ---
-  function openIncomesModal() {
-    const incomes = state.data.incomes;
+  function openIncomesModal(focusPartner = null) {
+    const incomes = (state.data && state.data.incomes) ? state.data.incomes : {};
+    const settings = state.settings || {};
     const { name, year } = getMonthName(state.currentMonth);
     DOM.incomesModalMonth.textContent = `${name} ${year}`;
-    DOM.inputIncomeP1.value = incomes.income_partner1 || '';
-    DOM.inputIncomeP2.value = incomes.income_partner2 || '';
+
+    // Popola con i valori del mese corrente oppure fallback su impostazioni predefinite
+    const p1Val = (incomes.income_partner1 !== undefined && incomes.income_partner1 !== null && incomes.income_partner1 !== '')
+      ? incomes.income_partner1
+      : (parseFloat(settings.default_income_p1) || 2700);
+    const p2Val = (incomes.income_partner2 !== undefined && incomes.income_partner2 !== null && incomes.income_partner2 !== '')
+      ? incomes.income_partner2
+      : (parseFloat(settings.default_income_p2) || 2200);
+
+    DOM.inputIncomeP1.value = p1Val;
+    DOM.inputIncomeP2.value = p2Val;
     DOM.inputIncomeExtra.value = incomes.extra_income || '';
+
+    // Aggiorna etichette partner nel modale
+    const p1Name = settings.partner1_name || 'Marco';
+    const p2Name = settings.partner2_name || 'Angela';
+    document.querySelectorAll('.lbl-p1').forEach(el => el.textContent = p1Name);
+    document.querySelectorAll('.lbl-p2').forEach(el => el.textContent = p2Name);
+
     DOM.modalIncomes.classList.add('open');
+
+    setTimeout(() => {
+      if (focusPartner === 'partner2') {
+        if (DOM.inputIncomeP2) {
+          DOM.inputIncomeP2.focus();
+          DOM.inputIncomeP2.select();
+        }
+      } else {
+        if (DOM.inputIncomeP1) {
+          DOM.inputIncomeP1.focus();
+          DOM.inputIncomeP1.select();
+        }
+      }
+    }, 150);
   }
 
   async function handleIncomesSubmit(e) {
@@ -1463,7 +1538,7 @@
     const p1 = parseFloat(DOM.inputIncomeP1.value) || 0;
     const p2 = parseFloat(DOM.inputIncomeP2.value) || 0;
     const extra = parseFloat(DOM.inputIncomeExtra.value) || 0;
-    const saveDefault = DOM.checkSaveAsDefaultSalaries.checked;
+    const saveDefault = DOM.checkSaveAsDefaultSalaries ? DOM.checkSaveAsDefaultSalaries.checked : true;
 
     try {
       const res = await fetch('/api/incomes', {
@@ -1473,25 +1548,29 @@
           month: state.currentMonth,
           income_partner1: p1,
           income_partner2: p2,
-          extra_income: extra
+          extra_income: extra,
+          saveAsDefault: saveDefault
         })
       });
 
-      if (!res.ok) throw new Error('Errore aggiornamento stipendi');
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Errore aggiornamento stipendi');
+      }
 
-      if (saveDefault) {
-        await fetch('/api/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            default_income_p1: p1,
-            default_income_p2: p2
-          })
-        });
+      const resData = await res.json();
+      if (resData && resData.summary) {
+        state.data.summary = resData.summary;
+        if (resData.incomes) state.data.incomes = resData.incomes;
+        if (resData.settings) state.settings = resData.settings;
+        updatePartnerLabels();
+        renderHeroSummary();
+        renderExpensesList();
+        renderCharts();
       }
 
       DOM.modalIncomes.classList.remove('open');
-      showToast('💰 Stipendi e budget aggiornati!');
+      showToast('💰 Stipendi e budget aggiornati con successo!');
       await loadMonthData(state.currentMonth);
     } catch (err) {
       alert('Errore: ' + err.message);
@@ -1714,8 +1793,8 @@
     const s = state.settings || {};
     DOM.settingP1Name.value = s.partner1_name || 'Marco';
     DOM.settingP2Name.value = s.partner2_name || 'Angela';
-    DOM.settingDefIncomeP1.value = s.default_income_p1 || '2700';
-    DOM.settingDefIncomeP2.value = s.default_income_p2 || '2200';
+    DOM.settingDefIncomeP1.value = (s.default_income_p1 !== undefined && s.default_income_p1 !== null) ? s.default_income_p1 : '2700';
+    DOM.settingDefIncomeP2.value = (s.default_income_p2 !== undefined && s.default_income_p2 !== null) ? s.default_income_p2 : '2200';
     DOM.settingSplitPref.value = s.split_preference || '50_50';
 
     if (DOM.settingFoodBudget) {
@@ -1753,25 +1832,41 @@
       pulizie: parseFloat(DOM.settingCleaningBudget ? DOM.settingCleaningBudget.value : 100) || 0
     };
 
+    const p1Raw = DOM.settingDefIncomeP1 ? DOM.settingDefIncomeP1.value.trim() : '';
+    const p2Raw = DOM.settingDefIncomeP2 ? DOM.settingDefIncomeP2.value.trim() : '';
+    const p1Def = p1Raw !== '' ? (parseFloat(p1Raw) || 0) : 2700;
+    const p2Def = p2Raw !== '' ? (parseFloat(p2Raw) || 0) : 2200;
+
     const payload = {
       partner1_name: DOM.settingP1Name.value.trim() || 'Marco',
       partner2_name: DOM.settingP2Name.value.trim() || 'Angela',
-      default_income_p1: parseFloat(DOM.settingDefIncomeP1.value) || 2700,
-      default_income_p2: parseFloat(DOM.settingDefIncomeP2.value) || 2200,
+      default_income_p1: p1Def,
+      default_income_p2: p2Def,
       split_preference: DOM.settingSplitPref.value,
       budget_food: parseFloat(DOM.settingFoodBudget ? DOM.settingFoodBudget.value : 400) || 400,
-      category_budgets: JSON.stringify(catBudgets)
+      category_budgets: JSON.stringify(catBudgets),
+      month: state.currentMonth,
+      apply_to_current_month: true
     };
 
     try {
       const res = await fetch('/api/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Client-Id': CLIENT_ID },
         body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error('Errore aggiornamento impostazioni');
+      const updated = await res.json();
+      if (updated && updated._summary) {
+        state.data.summary = updated._summary;
+        state.settings = updated;
+        updatePartnerLabels();
+        renderHeroSummary();
+        renderExpensesList();
+        renderCharts();
+      }
       DOM.modalSettings.classList.remove('open');
-      showToast('⚙️ Impostazioni salvate!');
+      showToast('⚙️ Impostazioni salvate e bilancio aggiornato!');
       await loadMonthData(state.currentMonth);
     } catch (err) {
       alert('Errore: ' + err.message);
@@ -2005,15 +2100,6 @@
         if (DOM.pwaInstallBanner) DOM.pwaInstallBanner.style.display = 'none';
       });
     }
-
-    function updateOnlineStatus() {
-      if (navigator.onLine) {
-        if (DOM.offlineIndicator) DOM.offlineIndicator.style.display = 'none';
-      } else {
-        if (DOM.offlineIndicator) DOM.offlineIndicator.style.display = 'flex';
-      }
-    }
-
     window.addEventListener('online', () => {
       updateOnlineStatus();
       showToast('🟢 Connessione internet ripristinata!');
@@ -2025,8 +2111,6 @@
       updateOnlineStatus();
       showToast('⚠️ Connessione internet assente: modalità offline attiva');
     });
-
-    updateOnlineStatus();
   }
 
   async function triggerBroadcastTestNotification() {
@@ -2083,7 +2167,50 @@
     // Modali Trigger & Azioni
     DOM.btnOpenNewExpenseModal.addEventListener('click', openNewExpenseModal);
     DOM.fabMobileAdd.addEventListener('click', openNewExpenseModal);
-    DOM.btnEditIncomes.addEventListener('click', openIncomesModal);
+    DOM.btnEditIncomes.addEventListener('click', () => openIncomesModal());
+
+    // Trigger modifica stipendi dedicati per partner
+    if (DOM.btnEditIncomeP1) {
+      DOM.btnEditIncomeP1.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openIncomesModal('partner1');
+      });
+    }
+    if (DOM.btnEditIncomeP2) {
+      DOM.btnEditIncomeP2.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openIncomesModal('partner2');
+      });
+    }
+    if (DOM.partner1RatioDisplay) {
+      DOM.partner1RatioDisplay.addEventListener('click', () => openIncomesModal('partner1'));
+    }
+    if (DOM.partner2RatioDisplay) {
+      DOM.partner2RatioDisplay.addEventListener('click', () => openIncomesModal('partner2'));
+    }
+    if (DOM.partner1BaseIncomeRow) {
+      DOM.partner1BaseIncomeRow.addEventListener('click', () => openIncomesModal('partner1'));
+    }
+    if (DOM.partner2BaseIncomeRow) {
+      DOM.partner2BaseIncomeRow.addEventListener('click', () => openIncomesModal('partner2'));
+    }
+    if (DOM.incomesBreakdownText) {
+      DOM.incomesBreakdownText.style.cursor = 'pointer';
+      DOM.incomesBreakdownText.addEventListener('click', () => openIncomesModal());
+    }
+    if (DOM.totalIncomeDisplay) {
+      DOM.totalIncomeDisplay.style.cursor = 'pointer';
+      DOM.totalIncomeDisplay.addEventListener('click', () => openIncomesModal());
+    }
+    if (DOM.cardIncomeHero) {
+      DOM.cardIncomeHero.style.cursor = 'pointer';
+      DOM.cardIncomeHero.addEventListener('click', (e) => {
+        if (!e.target.closest('#btnEditIncomes')) {
+          openIncomesModal();
+        }
+      });
+    }
+
     DOM.btnCopyFixedModal.addEventListener('click', handleCopyFixedExpenses);
     DOM.btnSettleBalance.addEventListener('click', openSettlementModal);
     if (DOM.btnUndoSettlement) {
@@ -2309,13 +2436,43 @@
 
   // --- AVVIO APP ---
   async function init() {
-    setupEventListeners();
-    updateOnlineStatus();
-    initPwaInstallPrompt();
-    await registerServiceWorker();
-    updateNotificationButtonUI();
-    await fetchNetworkInfo();
-    updateTunnelUI();
+    try {
+      setupEventListeners();
+    } catch (e) {
+      console.warn('Errore setupEventListeners:', e);
+    }
+
+    try {
+      updateOnlineStatus();
+    } catch (e) {
+      console.warn('Errore updateOnlineStatus:', e);
+    }
+
+    try {
+      initPwaInstallPrompt();
+    } catch (e) {
+      console.warn('Errore initPwaInstallPrompt:', e);
+    }
+
+    try {
+      await registerServiceWorker();
+    } catch (e) {
+      console.warn('Errore registerServiceWorker:', e);
+    }
+
+    try {
+      updateNotificationButtonUI();
+    } catch (e) {
+      console.warn('Errore updateNotificationButtonUI:', e);
+    }
+
+    try {
+      await fetchNetworkInfo();
+      updateTunnelUI();
+    } catch (e) {
+      console.warn('Errore fetchNetworkInfo:', e);
+    }
+
     try {
       const catRes = await fetch('/api/categories');
       if (catRes.ok) {
@@ -2325,8 +2482,19 @@
     } catch (e) {
       console.warn('Errore precaricamento categorie', e);
     }
-    await loadMonthData(state.currentMonth);
-    initRealtimeSync();
+
+    // Caricamento prioritario e protetto dello stato del mese
+    try {
+      await loadMonthData(state.currentMonth);
+    } catch (e) {
+      console.error('Errore critico caricamento dati mese:', e);
+    }
+
+    try {
+      initRealtimeSync();
+    } catch (e) {
+      console.warn('Errore initRealtimeSync:', e);
+    }
   }
 
   window.addEventListener('DOMContentLoaded', init);
